@@ -27,7 +27,7 @@ h3,.o,.btn,nav button,.chip{font-family:'Bree Serif',Georgia,serif}
 input{display:block;width:100%;min-height:54px;margin-top:12px;border:2px solid #ffffff2a;border-radius:12px;background:var(--wool);font:22px Nunito,sans-serif;padding:8px 14px;color:#2b1d3a}
 input:focus{outline:3px solid var(--gold);outline-offset:1px}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--night);border-top:3px solid var(--gold);box-shadow:0 -6px 18px #0006}
-nav button{flex:1;background:none;border:0;color:var(--mute);font-size:12.5px;padding:12px 0 calc(16px + env(safe-area-inset-bottom,0px));cursor:pointer}nav .on{color:#fff;background:var(--band) center/40px 30px repeat-x;background-color:var(--red);text-shadow:0 1px 3px #000}
+nav button{flex:1;background:none;border:0;color:var(--mute);font-size:11.5px;padding:12px 0 calc(16px + env(safe-area-inset-bottom,0px));cursor:pointer}nav .on{color:#fff;background:var(--band) top/40px 7px repeat-x;background-color:var(--red);text-shadow:0 1px 3px #000}
 .ok{color:#5fd4c7}.bad{color:#ff9f7a}table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:5px 4px;border-top:1px solid #ffffff1a;text-align:left;vertical-align:top}th{color:var(--gold);font-weight:600;font-size:13px}
 .src{color:var(--mute);font-size:13.5px;margin-top:4px}.q{border-left:4px solid var(--mag);padding:2px 0 2px 10px;margin:12px 0}.q .ru{font-size:18px}.q .en{color:var(--mute);font-style:italic;font-size:14.5px}
 u{text-decoration:none;border-bottom:2px solid var(--gold)}.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
@@ -40,6 +40,13 @@ span.w{cursor:pointer;border-radius:3px}span.w:active,span.w.sel{background:var(
 .hint{display:inline-block;background:#ffffff14;border-radius:999px;padding:4px 12px;font-size:14px;color:var(--wool);margin-bottom:8px}
 .conj{font-size:15px;margin-top:8px;color:var(--wool)}.conj b{color:var(--gold);font-weight:600}
 a{color:var(--gold)}
+.spk{background:#ffffff14;border:0;border-radius:999px;width:36px;height:36px;font-size:16px;vertical-align:middle;cursor:pointer;color:var(--wool)}
+.book{display:flex;gap:14px;align-items:center;cursor:pointer}.book .cv{width:64px;height:86px;border-radius:6px;flex:none;display:grid;place-items:center;font:28px 'Bree Serif',serif;color:#fff;text-shadow:0 2px 4px #000;box-shadow:0 6px 14px #0008;background:var(--band) center/40px 30px repeat-y,var(--red)}
+.toc div{padding:10px 2px;border-top:1px solid #ffffff1a;cursor:pointer}.toc div:hover{color:var(--gold)}
+.rd{font:19px/1.65 Georgia,'Times New Roman',serif;color:#f8f1e4}.rd p{margin:0 0 14px;white-space:pre-line}.rd p.now{background:#f2b23022;border-radius:6px;box-shadow:0 0 0 6px #f2b23022}
+.rd .spk{width:30px;height:30px;font-size:13px;opacity:.75}
+.rbar{position:sticky;top:0;z-index:3;display:flex;gap:8px;align-items:center;padding:calc(8px + env(safe-area-inset-top,0px)) 14px 8px;background:var(--night);border-bottom:2px solid var(--gold)}
+.rbar .tt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:15px 'Bree Serif',serif;color:var(--gold)}
 </style></head><body><main id="app"></main><div id="sheet"></div><nav id="nav"></nav>
 <script src="data.js"></script>
 <script>
@@ -50,23 +57,24 @@ const today=iso(new Date()),addD=n=>{const d=new Date();d.setDate(d.getDate()+n)
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const low=s=>String(s||'').toLowerCase().trim();
 const plain=s=>low(s).normalize('NFD').replace(/[̀-ͯ]/g,'');     // ignores accents
-/* C[i] = [id, deck se|pi, source 0 Tatoeba / 1 Quijote / 2 Orgullo, verb, tense, persons[], sentence with ___, answer, other-verb/other-tense forms[], English (Tatoeba), Tatoeba id] */
+/* C[i] = [id, deck mo (indicativo/subjuntivo) | pi (pretérito/imperfecto), source 0 Tatoeba / 1 Quijote / 2 Orgullo, verb, tense, persons[], sentence with ___, answer, other-mood/other-tense forms[], English (Tatoeba), Tatoeba id, equally right forms (-ra/-se)] */
 const SRC=['Tatoeba','Miguel de Cervantes, «Don Quijote de la Mancha» (1605–1615)','Jane Austen, «Orgullo y prejuicio», trad. J. de Urríes y Azara (1924)'];
 const SKEY={tatoeba:0,quijote:1,orgullo:2};
 const TENSE=['presente','pretérito','imperfecto','futuro','condicional','presente de subjuntivo','imperfecto de subjuntivo'];
 const PERS=['yo','tú','él / ella / usted','nosotros','vosotros','ellos / ustedes'],PK=['1s','2s','3s','1p','2p','3p'];
 const CM=Object.fromEntries(C.map(c=>[c[0],c]));
-function card(id){const c=CM[id];if(!c)return null;const se=c[1]==='se';
- return{id,deck:se?'se':'pi',src:c[2],verb:c[3],tense:c[4],pers:c[5],sent:c[6],ans:c[7],alts:c[8],en:c[9],tid:c[10],
-  tag:se?'ser / estar · '+c[4]:c[4]==='pretérito'?'pretérito':'imperfecto',
-  hint:(se?'ser / estar · '+c[4]:c[3]+' · ¿pretérito o imperfecto?')+' · '+c[5].join(' o ')}}
+const MOOD=t=>/subjuntivo/.test(t)?'subjuntivo':'indicativo';
+function card(id){const c=CM[id];if(!c)return null;const mo=c[1]==='mo';
+ return{id,deck:c[1],src:c[2],verb:c[3],tense:c[4],pers:c[5],sent:c[6],ans:c[7],alts:c[8],en:c[9],tid:c[10],eq:c[11]||[],
+  tag:mo?MOOD(c[4])+' · '+c[4]:c[4],
+  hint:c[3]+(mo?' · ¿indicativo o subjuntivo?':' · ¿pretérito o imperfecto?')+' · '+c[5].join(' o ')}}
 function conjLine(v,t){const f=(V[v]||['',{}])[1][t];return f?PK.map(p=>f[p]).filter(Boolean).join(', '):''}
 function explain(c){
- if(c.deck==='se'){const o=c.verb==='ser'?'estar':'ser';
-  return `<div class="conj"><b>${c.verb} · ${c.tense}:</b> ${esc(conjLine(c.verb,c.tense))}</div><div class="conj"><b>${o}:</b> ${esc(conjLine(o,c.tense))}</div><div class="m" style="margin-top:8px">${c.verb==='ser'?'ser: qué o cómo es algo (identidad, origen, carácter, hora, eventos).':'estar: dónde está o cómo se encuentra ahora (lugar, estado, + gerundio).'}</div>`}
+ if(c.deck==='mo'){const sub=MOOD(c.tense)==='subjuntivo',T=sub?[c.tense,c.tense==='presente de subjuntivo'?'presente':'imperfecto']:[c.tense,['presente','futuro'].includes(c.tense)?'presente de subjuntivo':'imperfecto de subjuntivo'];
+  return `<div class="conj"><b>${esc(c.verb)}</b> <span class="gl">“${esc((V[c.verb]||[''])[0])}”</span> · aquí: <b>${esc(c.tense)}</b></div>${T.map(t=>`<div class="conj"><b>${t}:</b> ${esc(conjLine(c.verb,t))}</div>`).join('')}<div class="m" style="margin-top:8px">${sub?'Subjuntivo: lo que se desea, se duda, se siente o aún no ocurre. Mira qué lo pide en la frase.':'Indicativo: aquí la frase afirma algo como real.'}</div>`}
  const o=c.tense==='pretérito'?'imperfecto':'pretérito';
  return `<div class="conj"><b>${c.verb}</b> <span class="gl">“${esc((V[c.verb]||[''])[0])}”</span></div><div class="conj"><b>pretérito:</b> ${esc(conjLine(c.verb,'pretérito'))}</div><div class="conj"><b>imperfecto:</b> ${esc(conjLine(c.verb,'imperfecto'))}</div><div class="m" style="margin-top:8px">${c.tense==='pretérito'?'Pretérito: una acción terminada, un punto en la historia.':'Imperfecto: el fondo, la costumbre, la descripción, lo que estaba pasando.'}</div>`}
-let S={cards:{},tg:{},log:[],days:{},sus:{},set:{n:10,d:{se:1,pi:1,s0:1,s1:1,s2:1}}};
+let S={cards:{},tg:{},log:[],days:{},sus:{},rd:{},set:{n:15,r:0.95,d:{mo:1,pi:1,s0:1,s1:1,s2:1}}};
 try{const o=JSON.parse(localStorage.getItem(K));if(o)S={...S,...o,set:{...S.set,...(o.set||{}),d:{...S.set.d,...((o.set||{}).d||{})}}}}catch(e){}
 let tab='home',Q=[],TOT=0,tries=0,fb=null,msg='',note='',dq='';
 const persist=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
@@ -80,7 +88,8 @@ function start(){Q=queue();TOT=Q.length;tries=0;fb=null;msg='';note='';tab='dril
 function check(){const v=document.getElementById('a').value;if(!v.trim())return;const c=card(Q[0]);
  if(low(v)===low(c.ans)){note='';grade(c,tries?1:2,v)}
  else if(plain(v)===plain(c.ans)){note='Ojo con el acento: se escribe «'+c.ans.toLowerCase()+'».';grade(c,tries?1:2,v)}
- else if(c.alts.some(a=>plain(a)===plain(v))){msg=c.deck==='se'?'Forma correcta, pero el autor usó el otro verbo. ¿Por qué?':'Buen verbo, pero el otro tiempo. ¿Acción terminada o fondo?';render()}
+ else if(c.eq.some(a=>plain(a)===plain(v))){note='Correcto: «'+low(v)+'» y «'+c.ans.toLowerCase()+'» valen lo mismo; el autor usó la segunda.';grade(c,tries?1:2,v)}
+ else if(c.alts.some(a=>plain(a)===plain(v))){msg=c.deck==='mo'?'Buena forma, pero el autor usó el otro modo. ¿Qué lo pide en la frase?':'Buen verbo, pero el otro tiempo. ¿Acción terminada o fondo?';render()}
  else if(!tries){tries=1;msg='Casi. Inténtalo otra vez.';render()}
  else{S.log.push({t:Date.now(),id:c.id,a:v});S.log=S.log.slice(-200);note='';grade(c,0,v)}}
 function grade(c,g,v){const id=c.id,s=S.cards[id]||{b:0,f:today};
@@ -96,19 +105,22 @@ const quote=q=>`<div class="q"><div class="ru">«${hl(q[0],q[2])}»</div>${q[3]?
 const setN=n=>{S.set.n=n;save();render()};const tgl=d=>{S.set.d[d]=S.set.d[d]?0:1;save();render()};
 const bar=(t,r)=>`<div class="b o"><div class="bi"><span class="t">${LLAMA}${t}</span><span>${r||''}</span></div></div>`;
 function home(){const q=queue(),due=q.filter(i=>S.cards[i]).length,tg=Object.entries(S.tg).filter(([k,v])=>v[1]>=3).map(([k,v])=>[k,v[0]/v[1]]).sort((a,b)=>a[1]-b[1]).slice(0,4);
- const seen=Object.keys(S.cards).length,tot=ALLIDS.length;
+ const seen=Object.keys(S.cards).length,tot=ALLIDS.length,last=S.rd.last&&S.rd[S.rd.last];
  return bar('Verbos','Racha '+streak())+`<div class="k"><h3>Hoy</h3><div style="display:flex;gap:28px"><div><div class="big">${due}</div><div class="m">repasos</div></div><div><div class="big">${q.length-due}</div><div class="m">nuevas</div></div></div><button class="btn" onclick="start()">${q.length?'¡Vamos! ▸':'Terminaste por hoy'}</button><div class="m" style="margin-top:12px">Has visto ${seen} de ${tot} tarjetas</div><div class="t2"><i style="width:${seen/tot*100}%"></i></div></div>
+ ${last?`<div class="k"><h3>Seguir leyendo</h3><div>${esc(BOOKMETA[S.rd.last].t)} · <span class="m">${esc(last.title||'')}</span></div><button class="btn g" onclick="openBook('${S.rd.last}',${last.ch})">Abrir el libro</button></div>`:''}
  <div class="k"><h3>Para practicar más</h3>${tg.length?tg.map(([k,v])=>`<div class="m">${esc(k)} · ${Math.round(v*100)}%</div><div class="t2"><i style="width:${v*100}%"></i></div>`).join(''):'<div class="m">Aparecerá después de tus primeras tarjetas.</div>'}</div>
  <div class="k"><h3>Ajustes</h3><div class="m">Tarjetas nuevas por día</div><div class="chips">${[5,10,15,25].map(n=>`<button class="chip ${S.set.n===n?'on':''}" onclick="setN(${n})">${n}</button>`).join('')}</div>
- <div class="m" style="margin-top:14px">Temas</div><div class="chips">${[['se','Ser o estar'],['pi','Pretérito o imperfecto']].map(([d,l])=>`<button class="chip ${S.set.d[d]?'on':''}" onclick="tgl('${d}')">${l}</button>`).join('')}</div>
+ <div class="m" style="margin-top:14px">Temas</div><div class="chips">${[['mo','Indicativo o subjuntivo'],['pi','Pretérito o imperfecto']].map(([d,l])=>`<button class="chip ${S.set.d[d]?'on':''}" onclick="tgl('${d}')">${l}</button>`).join('')}</div>
  <div class="m" style="margin-top:14px">Textos</div><div class="chips">${[['s0','Frases del día a día'],['s1','Don Quijote'],['s2','Orgullo y prejuicio']].map(([d,l])=>`<button class="chip ${S.set.d[d]?'on':''}" onclick="tgl('${d}')">${l}</button>`).join('')}</div>
+ <div class="m" style="margin-top:14px">Velocidad de la voz</div><div class="chips">${[[0.75,'Lenta'],[0.95,'Normal'],[1.1,'Rápida']].map(([r,l])=>`<button class="chip ${S.set.r===r?'on':''}" onclick="S.set.r=${r};save();render();say('Hola, ¿qué tal?')">${l}</button>`).join('')}</div>
  <div class="m" style="margin-top:12px">${C.length} tarjetas con frases reales · ${Object.keys(V).length} verbos conjugados</div></div>`}
+let CUR='';
 function drill(){if(!Q.length)return bar('¡Listo!')+`<div class="k"><h3>¡Bien hecho!</h3><div class="m">Hiciste ${TOT} tarjetas. Vuelve mañana: la llama te espera.</div><button class="btn" onclick="tab='home';render()">Al inicio</button></div>`;
  const c=card(Q[0]),full=tw(esc(c.sent)).replace('___','<u><span class="w">'+esc(c.ans)+'</span></u>');
- const sl=`<div class="src">— ${esc(srcLine(c.src,c.tid))}</div>`;
- const body=fb?`<div class="k"><h3 class="${fb.g?'ok':'bad'}">${fb.g===2?'¡Correcto!':fb.g===1?'Correcto al segundo intento':'No esta vez'}</h3><div class="ru">${full}</div>${c.en?`<div class="gl" style="font-style:italic;margin-top:4px">“${esc(c.en)}”</div>`:''}${sl}${note?`<div class="bad" style="margin-top:8px">${esc(note)}</div>`:''}${explain(c)}<button class="btn" onclick="next()">Siguiente</button><button class="lnk" onclick="suspend()">Quitar esta tarjeta</button></div>`
- :`<div class="k"><span class="hint">${esc(c.hint)}</span><div class="ru">${tw(esc(c.sent)).replace('___','<span class="blank">______</span>')}</div>${sl}<input id="a" autocapitalize="off" autocorrect="off" spellcheck="false" lang="es" autocomplete="off" aria-label="Respuesta" onkeydown="if(event.key==='Enter')check()"><div class="bad" style="margin-top:6px">${esc(msg)}</div><div class="m">Toca cualquier palabra para ver su traducción.</div><button class="btn" onclick="check()">Comprobar</button></div>`;
- return bar('Ejercicio','Quedan '+Q.length)+body}
+ const sl=`<div class="src">— ${esc(srcLine(c.src,c.tid))}</div>`,fullText=c.sent.replace('___',c.ans);
+ const body=fb?`<div class="k"><h3 class="${fb.g?'ok':'bad'}">${fb.g===2?'¡Correcto!':fb.g===1?'Correcto al segundo intento':'No esta vez'}</h3><div class="ru">${full} <button class="spk" onclick="say(CUR)" aria-label="Escuchar">🔊</button></div>${c.en?`<div class="gl" style="font-style:italic;margin-top:4px">${/^["“]/.test(c.en)?esc(c.en):'“'+esc(c.en)+'”'}</div>`:''}${sl}${note?`<div class="bad" style="margin-top:8px">${esc(note)}</div>`:''}${explain(c)}<button class="btn" onclick="next()">Siguiente</button><button class="lnk" onclick="suspend()">Quitar esta tarjeta</button></div>`
+ :`<div class="k"><span class="hint">${esc(c.hint)}</span><div class="ru">${tw(esc(c.sent)).replace('___','<span class="blank">______</span>')} <button class="spk" onclick="say(CUR.replace('___',' … '))" aria-label="Escuchar">🔊</button></div>${sl}<input id="a" autocapitalize="off" autocorrect="off" spellcheck="false" lang="es" autocomplete="off" aria-label="Respuesta" onkeydown="if(event.key==='Enter')check()"><div class="bad" style="margin-top:6px">${esc(msg)}</div><div class="m">Toca cualquier palabra para ver su traducción.</div><button class="btn" onclick="check()">Comprobar</button></div>`;
+ CUR=fb?fullText:c.sent;return bar('Ejercicio','Quedan '+Q.length)+body}
 function rules(){return bar('Reglas',R.length+' temas')+R.map(r=>`<div class="k"><h3>${esc(r.h)}</h3>${(r.p||[]).map(p=>`<div style="margin-bottom:6px">${esc(p)}</div>`).join('')}${(r.ex||[]).map(quote).join('')}</div>`).join('')
  +`<div class="k"><h3>Del libro</h3>${FIRST.map(quote).join('')}</div>`
  +`<div class="k"><h3>Fuentes y licencias</h3><div class="m" style="margin-bottom:8px">Todas las frases son citas literales (solo se cambiaron los guiones de diálogo por rayas). Las explicaciones breves de las reglas se escribieron para esta app.</div>
@@ -129,13 +141,41 @@ function stats(){const bx=[0,1,2,3,4,5].map(i=>Object.values(S.cards).filter(c=>
  return bar('Resumen','Racha '+streak())+`<div class="k"><h3>Cajas (0 · 1d · 3d · 7d · 16d · 35d)</h3><div style="display:flex;gap:6px;align-items:flex-end;height:90px">${bx.map((v,i)=>`<div style="flex:1;border-radius:6px 6px 0 0;background:${['#d6336c','#e8772e','#f2b230','#1b8a8f','#3fa7a0','#f6ecd9'][i]};height:${v/mx*90+3}px" title="${v}"></div>`).join('')}</div><div class="m" style="display:flex;justify-content:space-around;margin-top:4px">${bx.map(v=>`<span>${v}</span>`).join('')}</div></div>
  <div class="k"><h3>Errores recientes</h3>${S.log.slice(-8).reverse().map(x=>{const c=card(x.id);return c?`<div class="m">${esc(x.a)} → <span class="ok">${esc(c.ans)}</span> · ${esc(c.hint)}</div>`:''}).join('')||'<div class="m">Nada por aquí.</div>'}</div>
  ${ns?`<div class="k"><h3>Tarjetas quitadas</h3><div class="m">${ns}</div><button class="btn g" onclick="S.sus={};save();render()">Devolverlas todas</button></div>`:''}${cloud()}`}
+/* ---- Audio: the phone's own Spanish voice (works offline). Peruvian or Latin American when available ---- */
+let VOICE=null;function pickVoice(){const v=speechSynthesis.getVoices().filter(x=>/^es/i.test(x.lang)),pref=['es-PE','es-419','es-MX','es-US','es-CO','es-AR','es-ES'],ix=x=>{const i=pref.indexOf(x.lang.replace('_','-'));return i<0?99:i};VOICE=v.sort((a,b)=>ix(a)-ix(b))[0]||null}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function utter(t){const u=new SpeechSynthesisUtterance(t);u.lang=VOICE?VOICE.lang:'es-419';if(VOICE)u.voice=VOICE;u.rate=S.set.r||0.95;return u}
+function say(t){if(!('speechSynthesis' in window))return alert('Este navegador no tiene voz.');speechSynthesis.cancel();speechSynthesis.speak(utter(t))}
+/* ---- Libros: the full texts, loaded the first time and then kept on the phone ---- */
+const BOOKMETA={quijote:{t:'Don Quijote de la Mancha',a:'Miguel de Cervantes',y:'1605–1615',l:'Q'},orgullo:{t:'Orgullo y prejuicio',a:'Jane Austen · trad. J. Jordán de Urríes y Azara',y:'1924',l:'O'}};
+const BOOKS={};let BV={b:null,ch:null};
+const loadBook=k=>BOOKS[k]?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='libro-'+k+'.js';sc.onload=ok;sc.onerror=no;document.head.appendChild(sc)});
+async function openBook(k,ch){stopRead();tab='books';BV={b:k,ch:ch==null?null:ch};document.getElementById('app').innerHTML=bar('Libros')+'<div class="k"><div class="m">Abriendo el libro…</div></div>';
+ try{await loadBook(k)}catch(e){document.getElementById('app').innerHTML=bar('Libros')+'<div class="k"><div class="bad">No se pudo abrir. Ábrelo una vez con internet y quedará guardado.</div></div>';return}
+ render();const r=S.rd[k]||{},p=BV.ch!=null&&r.ch===BV.ch?(r.p||0):0,el=document.getElementById('p'+p);if(el&&p)el.scrollIntoView({block:'start'});else scrollTo(0,0)}
+function books(){if(!BV.b)return bar('Libros','2 novelas')+Object.entries(BOOKMETA).map(([k,b])=>{const r=S.rd[k];return `<div class="k book" onclick="openBook('${k}',${r?r.ch:'null'})"><div class="cv">${b.l}</div><div><h3 style="margin:0">${esc(b.t)}</h3><div class="m">${esc(b.a)} · ${b.y}</div><div class="m" style="margin-top:6px">${r?'Seguir: '+esc(r.title||''):'Texto completo · toca cualquier palabra'}</div></div></div>`}).join('')
+  +`<div class="k"><div class="m">Los libros quedan guardados en el teléfono para leer sin conexión. Toca una palabra para traducirla; 🔊 lee un párrafo; ▶ lee el capítulo en voz alta desde donde estás.</div></div>`;
+ const B=BOOKS[BV.b];if(!B)return bar('Libros');
+ if(BV.ch==null)return bar(B.t)+`<div class="k"><button class="chip" onclick="BV={b:null};render()">‹ Libros</button><h3 style="margin-top:12px">${esc(B.t)}</h3><div class="m">${esc(B.a)} · ${B.y} · ${B.ch.length} capítulos</div><div class="toc" style="margin-top:10px">${B.ch.map((c,i)=>`<div onclick="openBook('${BV.b}',${i})">${esc(c[0])}</div>`).join('')}</div></div>`;
+ const c=B.ch[BV.ch],n=B.ch.length,r=S.rd[BV.b]||{};S.rd[BV.b]={ch:BV.ch,p:r.ch===BV.ch?(r.p||0):0,title:c[0].slice(0,90)};S.rd.last=BV.b;persist();
+ return `<div class="rbar"><button class="chip" onclick="stopRead();BV.ch=null;render();scrollTo(0,0)" aria-label="Índice">☰</button><span class="tt">${esc(c[0])}</span><button class="chip" id="play" onclick="toggleRead()" aria-label="Leer en voz alta">▶</button></div>
+ <div class="k rd"><h3>${esc(c[0])}</h3>${c[1].map((p,i)=>`<p id="p${i}">${tw(esc(p))} <button class="spk" onclick="event.stopPropagation();readFrom(${i},true)" aria-label="Escuchar el párrafo">🔊</button></p>`).join('')}
+ <div style="display:flex;gap:10px">${BV.ch>0?`<button class="btn g" onclick="openBook('${BV.b}',${BV.ch-1})">‹ Anterior</button>`:''}${BV.ch<n-1?`<button class="btn" onclick="openBook('${BV.b}',${BV.ch+1})">Siguiente ›</button>`:''}</div></div>`}
+let RD=null;
+function readFrom(i,one){if(!('speechSynthesis' in window))return alert('Este navegador no tiene voz.');stopRead();const c=BOOKS[BV.b].ch[BV.ch];RD={i,one};
+ const go=()=>{if(!RD||RD.i>=c[1].length){stopRead();return}document.querySelectorAll('.rd p.now').forEach(x=>x.classList.remove('now'));const el=document.getElementById('p'+RD.i);if(el){el.classList.add('now');el.scrollIntoView({block:'center',behavior:'smooth'})}
+  S.rd[BV.b].p=RD.i;persist();const u=utter(c[1][RD.i]);u.onend=()=>{if(!RD)return;if(RD.one){stopRead();return}RD.i++;go()};speechSynthesis.speak(u)};
+ const b=document.getElementById('play');if(b&&!one)b.textContent='■';go()}
+function stopRead(){RD=null;try{speechSynthesis.cancel()}catch(e){}document.querySelectorAll('.rd p.now').forEach(x=>x.classList.remove('now'));const b=document.getElementById('play');if(b)b.textContent='▶'}
+function toggleRead(){if(RD){stopRead();return}const ps=[...document.querySelectorAll('.rd p')],top=ps.findIndex(p=>p.getBoundingClientRect().bottom>80);readFrom(Math.max(0,top),false)}
+addEventListener('scroll',()=>{if(tab!=='books'||BV.ch==null||RD)return;clearTimeout(window.__rs);window.__rs=setTimeout(()=>{const ps=[...document.querySelectorAll('.rd p')],i=ps.findIndex(p=>p.getBoundingClientRect().bottom>80);if(i>=0&&S.rd[BV.b]){S.rd[BV.b].p=i;persist()}},400)},{passive:true});
 /* Tap-to-translate: lex.js (Wiktionary glosses) loads on first tap */
 let lexP=null;const lex=()=>lexP||(lexP=new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='lex.js';sc.onload=ok;sc.onerror=()=>{lexP=null;no()};document.head.appendChild(sc)}));
 let selW=null;const closeW=()=>{document.getElementById('sheet').style.display='none';if(selW)selW.classList.remove('sel');selW=null};
 async function showW(el){if(selW)selW.classList.remove('sel');selW=el;el.classList.add('sel');const raw=el.textContent,k=low(raw),sh=document.getElementById('sheet');
  sh.innerHTML='<div class="k"><div class="m">…</div></div>';sh.style.display='block';let E=[];try{await lex();E=LEX[k]||[]}catch(e){}
  const wl=w=>'https://en.wiktionary.org/wiki/'+encodeURIComponent(w.toLowerCase())+'#Spanish';
- sh.innerHTML=`<div class="k"><button class="x" onclick="closeW()" aria-label="Cerrar">×</button><h3>${esc(raw)}</h3>${E.length?E.map(e=>`<div style="margin-top:8px"><b>${esc(e[0])}</b> <span class="gl">${esc(e[1])}</span><div>${esc(e[2])}</div></div>`).join(''):'<div class="m">No está en el diccionario (puede ser una forma antigua o un nombre).</div>'}
+ sh.innerHTML=`<div class="k"><button class="x" onclick="closeW()" aria-label="Cerrar">×</button><h3>${esc(raw)} <button class="spk" onclick="say(this.dataset.w)" data-w="${esc(raw)}" aria-label="Escuchar">🔊</button></h3>${E.length?E.map(e=>`<div style="margin-top:8px"><b>${esc(e[0])}</b> <span class="gl">${esc(e[1])}</span><div>${esc(e[2])}</div></div>`).join(''):'<div class="m">No está en el diccionario (puede ser una forma antigua o un nombre).</div>'}
  <div class="m" style="margin-top:10px"><a target="_blank" rel="noopener" href="${wl(E[0]?E[0][0]:raw)}">Wiktionary →</a> · Wiktionary, CC BY-SA</div></div>`}
 document.addEventListener('click',e=>{const w=e.target.closest('span.w');if(w){showW(w);return}if(!e.target.closest('#sheet'))closeW()});
 /* Optional cloud sync (Supabase). Own table esp_snapshots and own storage key, so it never touches the other apps. */
@@ -152,16 +192,17 @@ function merge(o){for(const[i,c]of Object.entries(o.cards||{})){const m=S.cards[
  for(const[k,v]of Object.entries(o.tg||{})){const m=S.tg[k]||[0,0];S.tg[k]=[Math.max(m[0],v[0]),Math.max(m[1],v[1])]}
  for(const[k,v]of Object.entries(o.days||{}))S.days[k]=Math.max(S.days[k]||0,v);
  for(const[k,v]of Object.entries(o.sus||{}))S.sus[k]=v;
+ if(o.rd&&!Object.keys(S.rd).length)S.rd=o.rd;
  if(o.set&&!S.setT)S.set={...S.set,...o.set,d:{...S.set.d,...(o.set.d||{})}};
  const seen=new Set(S.log.map(x=>x.t));(o.log||[]).forEach(x=>{if(!seen.has(x.t))S.log.push(x)});S.log=S.log.sort((a,b)=>a.t-b.t).slice(-200)}
 async function sync(){if(!AU)return;try{const r=await sb('esp_snapshots?select=data');if(r[0])merge(r[0].data);S.setT=1;persist();
- await sb('esp_snapshots?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:AU.uid,data:{cards:S.cards,tg:S.tg,log:S.log,days:S.days,sus:S.sus,set:S.set},updated_at:new Date().toISOString()})});
+ await sb('esp_snapshots?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:AU.uid,data:{cards:S.cards,tg:S.tg,log:S.log,days:S.days,sus:S.sus,set:S.set,rd:S.rd},updated_at:new Date().toISOString()})});
  SYT='Sincronizado '+new Date().toTimeString().slice(0,5);if(tab!=='drill'&&tab!=='dict')render()}catch(e){SYT=(/42501|42P01/.test(e.message)?'Falta la tabla esp_snapshots o sus permisos: ejecuta schema.sql en Supabase. ':'')+'Error: '+e.message.slice(0,300);if(tab==='stats')render()}}
 async function signIn(){try{await auth({email:document.getElementById('em').value.trim(),password:document.getElementById('pw').value},'password');await sync();render()}catch(e){SYT=e.message;render()}}
 const signOut=()=>{AU=null;saveAU();SYT='Sin conexión a la nube';render()};
 const cloud=()=>AU?`<div class="k"><h3>Nube</h3><div class="m">${esc(AU.em)}</div><div class="m">${esc(SYT)}</div><button class="btn" onclick="sync()">Sincronizar</button><button class="btn g" onclick="signOut()">Salir</button></div>`:`<div class="k"><h3>Nube (opcional)</h3><div class="m">Guarda tu progreso y úsalo en varios dispositivos.</div><input id="em" type="email" autocomplete="username" placeholder="Correo"><input id="pw" type="password" autocomplete="current-password" placeholder="Contraseña (6 o más)"><button class="btn" onclick="signIn()">Entrar</button><button class="btn g" onclick="signUp()">Crear cuenta</button><div class="m" style="margin-top:6px">${esc(SYT)}</div></div>`;
-const TABS={home:['Inicio',home],drill:['Ejercicio',drill],rules:['Reglas',rules],dict:['Verbos',dict],stats:['Resumen',stats]};
-function render(){closeW();document.getElementById('app').innerHTML=TABS[tab][1]();document.getElementById('nav').innerHTML=Object.entries(TABS).map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';${k==='drill'?'if(!Q.length)start();else ':''}render();scrollTo(0,0)">${v[0]}</button>`).join('');const a=document.getElementById('a');if(a&&!fb)a.focus()}
+const TABS={home:['Inicio',home],drill:['Ejercicio',drill],books:['Libros',books],rules:['Reglas',rules],dict:['Verbos',dict],stats:['Resumen',stats]};
+function render(){closeW();if(tab!=='books')stopRead();document.getElementById('app').innerHTML=TABS[tab][1]();document.getElementById('nav').innerHTML=Object.entries(TABS).map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';${k==='drill'?'if(!Q.length)start();else ':''}${k==='books'?'if(BV.b&&!BOOKS[BV.b])BV={b:null};':''}render();scrollTo(0,0)">${v[0]}</button>`).join('');const a=document.getElementById('a');if(a&&!fb)a.focus()}
 render();if(AU)sync();document.addEventListener('visibilitychange',()=>{if(AU&&!document.hidden)sync()});
 try{if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js')}catch(e){}
 </script></body></html>
